@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Tracker</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3249;
+    --accent: #4f8ef7;
+    --accent2: #38d9a9;
+    --warn: #f7a94f;
+    --danger: #f75f5f;
+    --text: #e8eaf0;
+    --muted: #7a7f9a;
+    --green: #38d9a9;
+    --yellow: #f7a94f;
+    --red: #f75f5f;
+    --blue: #4f8ef7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .5px; display: flex; align-items: center; gap: 10px; }
+  header h1 span.icon { font-size: 1.4rem; }
+  .car-label { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .mileage-display { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: .85rem; color: var(--muted); cursor: pointer; }
+  .mileage-display span { color: var(--accent); font-weight: 600; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 24px; }
+  .tab { padding: 14px 22px; font-size: .9rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .badge { display: inline-block; background: var(--surface2); border-radius: 10px; padding: 1px 7px; font-size: .7rem; margin-left: 6px; color: var(--muted); }
+  .tab.active .badge { background: var(--accent); color: #fff; }
+
+  .main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+  .toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: .875rem; font-weight: 500; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7be8; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #d94f4f; }
+  .btn-sm { padding: 5px 12px; font-size: .8rem; }
+
+  .filter-group { display: flex; gap: 6px; margin-left: auto; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: .8rem; transition: all .15s; }
+  .filter-btn.active, .filter-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,.08); }
+
+  .search-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-size: .875rem; width: 200px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* Cards */
+  .cards { display: grid; gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; transition: border-color .2s; }
+  .card:hover { border-color: var(--accent); }
+  .card.overdue { border-left: 3px solid var(--red); }
+  .card.due-soon { border-left: 3px solid var(--yellow); }
+  .card.done { opacity: .6; }
+
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .card-title { font-size: 1rem; font-weight: 600; }
+  .card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .icon-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1rem; padding: 4px; border-radius: 6px; transition: all .15s; }
+  .icon-btn:hover { color: var(--text); background: var(--surface2); }
+  .icon-btn.danger:hover { color: var(--red); }
+
+  .card-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: .8rem; color: var(--muted); margin-bottom: 10px; }
+  .meta-item { display: flex; align-items: center; gap: 4px; }
+  .meta-item.cost { color: var(--green); font-weight: 600; }
+  .meta-item.overdue-text { color: var(--red); }
+  .meta-item.due-soon-text { color: var(--yellow); }
+
+  .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; cursor: pointer; }
+  .status-badge:hover { filter: brightness(1.2); }
+  .status-picker { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 300; overflow: hidden; min-width: 160px; }
+  .status-picker-option { padding: 9px 16px; font-size: .85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background .1s; }
+  .status-picker-option:hover { background: var(--surface2); }
+  .status-picker-option.active { background: var(--surface2); }
+  .status-pending { background: rgba(247,169,79,.12); color: var(--yellow); }
+  .status-in-progress { background: rgba(79,142,247,.12); color: var(--blue); }
+  .status-done { background: rgba(56,217,169,.12); color: var(--green); }
+  .status-scheduled { background: rgba(122,127,154,.12); color: var(--muted); }
+
+  .card-notes { font-size: .85rem; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+  .card-photo { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .card-photo img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid var(--border); transition: border-color .15s; }
+  .card-photo img:hover { border-color: var(--accent); }
+
+  /* Summary bar */
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; position: relative; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; position: relative; }
+  .stat:hover { border-color: var(--accent); background: var(--surface2); }
+  .stat.active { border-color: var(--accent); }
+  .stat-label { font-size: .75rem; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .stat-label::after { content: '▾'; font-size: .65rem; opacity: .5; }
+  .stat-value { font-size: 1.5rem; font-weight: 700; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.blue { color: var(--blue); }
+
+  /* Stat dropdown */
+  .stat-dropdown { position: absolute; top: calc(100% + 8px); left: 0; min-width: 280px; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 150; overflow: hidden; }
+  .stat-dropdown-header { padding: 12px 16px 8px; font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; border-bottom: 1px solid var(--border); }
+  .stat-dropdown-empty { padding: 16px; font-size: .85rem; color: var(--muted); text-align: center; }
+  .stat-thumb { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; }
+  .stat-thumb:last-child { border-bottom: none; }
+  .stat-thumb:hover { background: var(--surface2); }
+  .stat-thumb-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .stat-thumb-body { flex: 1; min-width: 0; }
+  .stat-thumb-title { font-size: .875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-thumb-meta { font-size: .75rem; color: var(--muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .stat-thumb-meta .cost { color: var(--green); font-weight: 600; }
+  .stat-thumb-meta .warn { color: var(--yellow); }
+  .stat-thumb-meta .danger { color: var(--red); }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { font-size: 1.1rem; font-weight: 700; }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 0 24px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: .8rem; color: var(--muted); margin-bottom: 6px; display: block; font-weight: 500; }
+  .form-input, .form-select, .form-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: .875rem; outline: none; font-family: inherit; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-select option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .photo-upload { border: 2px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; color: var(--muted); font-size: .85rem; transition: border-color .2s; }
+  .photo-upload:hover { border-color: var(--accent); color: var(--accent); }
+  .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .photo-preview-item { position: relative; }
+  .photo-preview-item img { width: 70px; height: 56px; object-fit: cover; border-radius: 6px; border: 2px solid var(--border); }
+  .photo-remove { position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: .65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  /* Mileage modal */
+  .mileage-modal { max-width: 340px; }
+
+  /* Lightbox */
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 300; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty p { font-size: .9rem; }
+
+  /* Drawer */
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 400; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .drawer-overlay.open { opacity: 1; pointer-events: all; }
+  .drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; background: var(--surface); border-right: 1px solid var(--border); z-index: 401; transform: translateX(-100%); transition: transform .25s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header { padding: 20px 20px 12px; border-bottom: 1px solid var(--border); }
+  .drawer-car { font-size: 1rem; font-weight: 700; }
+  .drawer-sub { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+  .drawer-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+  .drawer-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; font-size: .9rem; cursor: pointer; transition: background .1s; color: var(--text); border: none; background: none; width: 100%; text-align: left; }
+  .drawer-item:hover { background: var(--surface2); }
+  .drawer-item.active { color: var(--accent); background: rgba(79,142,247,.08); }
+  .drawer-item .di-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+  .drawer-item .di-badge { margin-left: auto; background: var(--surface2); border-radius: 10px; padding: 1px 8px; font-size: .7rem; color: var(--muted); }
+  .drawer-item.active .di-badge { background: var(--accent); color: #fff; }
+  .drawer-divider { height: 1px; background: var(--border); margin: 8px 0; }
+  .drawer-footer { padding: 12px 20px; border-top: 1px solid var(--border); }
+
+  /* Header redesign */
+  .hamburger { background: none; border: none; cursor: pointer; color: var(--text); font-size: 1.3rem; padding: 6px 8px; border-radius: 8px; line-height: 1; transition: background .15s; flex-shrink: 0; }
+  .hamburger:hover { background: var(--surface2); }
+  .header-center { flex: 1; text-align: center; }
+  .page-title { font-size: .75rem; color: var(--muted); margin-top: 1px; }
+
+  /* Home page */
+  .home-car-card { background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; }
+  .home-car-icon { font-size: 3.5rem; }
+  .home-car-name { font-size: 1.15rem; font-weight: 700; }
+  .home-car-sub { font-size: .8rem; color: var(--muted); margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .home-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+  .home-cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .home-cat-card:hover { border-color: var(--accent); background: var(--surface2); }
+  .home-cat-icon { font-size: 1.4rem; margin-bottom: 8px; }
+  .home-cat-label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .home-cat-count { font-size: 1.4rem; font-weight: 700; margin-top: 2px; }
+  .home-cat-sub { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .home-section-title { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 20px 0 10px; }
+  .home-alert-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
+  .home-alert-item:hover { border-color: var(--accent); }
+  .home-alert-item.overdue { border-left: 3px solid var(--red); }
+  .home-alert-item.due-soon { border-left: 3px solid var(--yellow); }
+  .home-alert-body { flex: 1; min-width: 0; }
+  .home-alert-title { font-size: .875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-alert-meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .home-alert-meta.danger { color: var(--red); }
+  .home-alert-meta.warn { color: var(--yellow); }
+  .home-empty-alert { font-size: .85rem; color: var(--muted); text-align: center; padding: 16px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); }
+
+  /* Section collapse */
+  .section-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0 14px; color: var(--muted); font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
+  .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .filter-group { display: none; }
+    .search-input { width: 140px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-car" id="drawerCarName">2003 Honda Civic LX</div>
+    <div class="drawer-sub" id="drawerCarSub">Satin Silver</div>
+  </div>
+  <nav class="drawer-nav">
+    <button class="drawer-item active" id="dnav-home" onclick="switchTab('home');closeDrawer()">
+      <span class="di-icon">🏠</span> Home
+    </button>
+    <div class="drawer-divider"></div>
+    <button class="drawer-item" id="dnav-maintenance" onclick="switchTab('maintenance');closeDrawer()">
+      <span class="di-icon">🔧</span> Maintenance <span class="di-badge" id="badge-maintenance">0</span>
+    </button>
+    <button class="drawer-item" id="dnav-cleaning" onclick="switchTab('cleaning');closeDrawer()">
+      <span class="di-icon">✨</span> Cleaning <span class="di-badge" id="badge-cleaning">0</span>
+    </button>
+    <button class="drawer-item" id="dnav-bodywork" onclick="switchTab('bodywork');closeDrawer()">
+      <span class="di-icon">🛠️</span> Body Work <span class="di-badge" id="badge-bodywork">0</span>
+    </button>
+    <button class="drawer-item" id="dnav-documents" onclick="switchTab('documents');closeDrawer()">
+      <span class="di-icon">📄</span> Documents <span class="di-badge" id="badge-documents">0</span>
+    </button>
+    <div class="drawer-divider"></div>
+    <button class="drawer-item" onclick="openMileageModal();closeDrawer()">
+      <span class="di-icon">⚙️</span> Settings
+    </button>
+  </nav>
+  <div class="drawer-footer">
+    <div style="font-size:.72rem;color:var(--muted)" id="drawerMileage"></div>
+  </div>
+</div>
+
+<header>
+  <button class="hamburger" onclick="openDrawer()" aria-label="Menu">☰</button>
+  <div class="header-center">
+    <h1 style="font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center"><span>🚗</span> Car Tracker</h1>
+    <div class="page-title" id="pageTitle">Home</div>
+  </div>
+  <div class="header-right">
+    <div class="mileage-display" onclick="openMileageModal()" title="Update mileage">
+      🛣️ <span id="currentMileageDisplay">—</span> mi
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div id="backupBanner" style="display:none;background:rgba(247,169,79,.1);border:1px solid rgba(247,169,79,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.85rem;">
+    <span>⚠️ No backup in over 5 days — tap ⚙️ Settings to export.</span>
+    <button class="btn btn-ghost btn-sm" onclick="exportData()">Export Now</button>
+  </div>
+  <div class="summary" id="summaryBar"></div>
+  <div class="stat-dropdown" id="statDropdown" style="display:none"></div>
+
+  <div class="toolbar" id="mainToolbar">
+    <button class="btn btn-primary" id="addBtn" onclick="handleAddBtn()">+ Add Item</button>
+    <input type="text" class="search-input" placeholder="Search…" oninput="renderCards()" id="searchInput">
+    <div class="filter-group">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('pending', this)">Pending</button>
+      <button class="filter-btn" onclick="setFilter('scheduled', this)">Scheduled</button>
+      <button class="filter-btn" onclick="setFilter('in-progress', this)">In Progress</button>
+      <button class="filter-btn" onclick="setFilter('done', this)">Done</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cardsContainer"></div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="addModal" style="display:none" onclick="closeModalOnOverlay(event, 'addModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add Item</h2>
+      <button class="icon-btn" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" class="form-input" id="f-title" placeholder="e.g. Oil Change, Touch-up Paint…">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="f-status">
+            <option value="scheduled">Scheduled</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="f-category">
+            <option value="maintenance">🔧 Maintenance</option>
+            <option value="cleaning">✨ Cleaning</option>
+            <option value="bodywork">🛠️ Body Work</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date Done</label>
+          <input type="date" class="form-input" id="f-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mileage Done</label>
+          <input type="number" class="form-input" id="f-mileage" placeholder="e.g. 45000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Cost ($)</label>
+          <input type="number" class="form-input" id="f-cost" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select class="form-select" id="f-priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High ⚠️</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input type="date" class="form-input" id="f-due-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due Mileage</label>
+          <input type="number" class="form-input" id="f-due-mileage" placeholder="e.g. 50000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="f-notes" placeholder="Any details, shop name, parts used…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Photos</label>
+        <div class="photo-upload" onclick="document.getElementById('photoInput').click()">📷 Click to add photos</div>
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotos(event)">
+        <div class="photo-preview" id="photoPreview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mileage/Settings Modal -->
+<div class="modal-overlay" id="mileageModal" style="display:none" onclick="closeModalOnOverlay(event, 'mileageModal')">
+  <div class="modal mileage-modal">
+    <div class="modal-header">
+      <h2>⚙️ Settings</h2>
+      <button class="icon-btn" onclick="closeModal('mileageModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Vehicle Name</label>
+        <input type="text" class="form-input" id="s-carName" placeholder="e.g. 2003 Honda Civic LX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input type="text" class="form-input" id="s-carColor" placeholder="e.g. Satin Silver">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current Mileage</label>
+        <input type="number" class="form-input" id="s-mileage" placeholder="e.g. 47500">
+      </div>
+      <div style="border-top:1px solid var(--border);margin:16px 0"></div>
+      <div class="form-label" style="margin-bottom:10px;font-size:.8rem;color:var(--muted)">⚠️ On iPhone, Safari may clear data after ~7 days of inactivity. Export a backup regularly to keep your records safe.</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="exportData()">⬇️ Export Backup</button>
+        <label class="btn btn-ghost" style="flex:1;justify-content:center;cursor:pointer">
+          ⬆️ Import Backup
+          <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+        </label>
+      </div>
+      <div id="backupStatus" style="font-size:.75rem;color:var(--muted);margin-top:8px;text-align:center"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('mileageModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Document Modal -->
+<div class="modal-overlay" id="docModal" style="display:none" onclick="closeModalOnOverlay(event, 'docModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="docModalTitle">Add Document</h2>
+      <button class="icon-btn" onclick="closeModal('docModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" class="form-input" id="d-title" placeholder="e.g. Discount Tire Receipt">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="d-type">
+            <option value="receipt">🧾 Receipt</option>
+            <option value="warranty">📋 Warranty</option>
+            <option value="inspection">🔍 Inspection</option>
+            <option value="insurance">🛡️ Insurance</option>
+            <option value="registration">📝 Registration</option>
+            <option value="other">📄 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="d-date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount ($)</label>
+        <input type="number" class="form-input" id="d-amount" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="d-notes" placeholder="Details, vendor, policy numbers…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Attachments (images / scanned docs)</label>
+        <div class="photo-upload" onclick="document.getElementById('docFileInput').click()">📎 Click to attach files</div>
+        <input type="file" id="docFileInput" accept="image/*,application/pdf" multiple style="display:none" onchange="handleDocFiles(event)">
+        <div class="photo-preview" id="docFilePreview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('docModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDoc()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" style="display:none" onclick="closeLightbox()">
+  <img id="lightboxImg" src="">
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────
+const DEFAULT_STATE = {
+  carName: '2003 Honda Civic LX',
+  carColor: 'Satin Silver',
+  currentMileage: 142453,
+  nextId: 14,
+  nextDocId: 2,
+  items: [
+    { id: 1,  category: 'maintenance', title: 'Oil Change',                        status: 'done',      date: '2026-02-10', mileage: '',     cost: '',   priority: 'high',   dueDate: '2026-08-10', dueMileage: '',     notes: 'Every 6 months.', photos: [] },
+    { id: 2,  category: 'maintenance', title: 'New Tires – All 4',                 status: 'done',      date: '2026-06-24', mileage: 142453, cost: 410,  priority: 'high',   dueDate: '',           dueMileage: '',     notes: 'Discount Tire. 195/60 R15. $59/tire × 4 + $25 installation × 4 = $336 + tax/fees = $410 total.\n\nInflated to 30 psi (recommended: 29 psi).\n40,000 mile warranty — expires ~182,453 mi.\nLife-of-tire replacement included.\nFREE: rotations (every 6k mi), air pressure checks, inspections.', photos: [] },
+    { id: 3,  category: 'maintenance', title: 'Tire Rotation',                     status: 'scheduled', date: '',           mileage: '',     cost: 0,    priority: 'medium', dueDate: '',           dueMileage: 148453, notes: 'FREE at Discount Tire. Every 6,000 miles. Next: ~148,453 mi.', photos: [] },
+    { id: 4,  category: 'cleaning',    title: 'Full Detail',                       status: 'done',      date: '2026-06-23', mileage: '',     cost: '',   priority: 'medium', dueDate: '2026-08-23', dueMileage: '',     notes: 'Interior like new after this detail. Next detail in 2–3 months — reassess based on condition.', photos: [] },
+    { id: 5,  category: 'cleaning',    title: 'Standard Wash',                     status: 'pending',   date: '',           mileage: '',     cost: '',   priority: 'low',    dueDate: '2026-07-08', dueMileage: '',     notes: 'Every 2 weeks. After each wash, reset due date 2 weeks out.', photos: [] },
+    { id: 6,  category: 'bodywork',    title: 'Front Bumper – Bottom Damage',      status: 'pending',   date: '',           mileage: '',     cost: '',   priority: 'high',   dueDate: '',           dueMileage: '',     notes: 'Bottom of bumper misshapen from pothole. Plastic underbody splash shield is completely broken — large chunk removed and currently in trunk. Needs repair or replacement.', photos: [] },
+    { id: 7,  category: 'bodywork',    title: 'Rear Bumper Misalignment',          status: 'pending',   date: '',           mileage: '',     cost: '',   priority: 'medium', dueDate: '',           dueMileage: '',     notes: 'Bumper is misaligned from an accident but otherwise in good shape. One shop said the clips are broken and the whole bumper needs to be replaced — need a second opinion before committing to a full replacement.', photos: [] },
+    { id: 8,  category: 'bodywork',    title: 'Hood – Dents & Latch',              status: 'pending',   date: '',           mileage: '',     cost: '',   priority: 'high',   dueDate: '',           dueMileage: '',     notes: 'Multiple large noticeable dents. Hood latch does not close properly and is a struggle to open. Hood does not sit flush with the front bumper when closed. Safety concern — do not ignore.', photos: [] },
+    { id: 9,  category: 'bodywork',    title: 'Windshield Rubber Trim Coming Off', status: 'pending',   date: '',           mileage: '',     cost: '',   priority: 'medium', dueDate: '',           dueMileage: '',     notes: 'Rubber lining/weatherstrip between the windshield and roof is detaching. Can allow water intrusion if left unaddressed.', photos: [] },
+    { id: 10, category: 'bodywork',    title: 'Paint & Clear Coat – Sun Damage',   status: 'pending',   date: '',           mileage: '',     cost: '',   priority: 'low',    dueDate: '',           dueMileage: '',     notes: 'Clear coat peeling on almost every panel due to sun exposure. Will worsen over time and expose bare paint. Options: full respray, clear coat restoration, or panel-by-panel touch-up.', photos: [] },
+    { id: 11, category: 'bodywork',    title: 'Window Tints',                      status: 'scheduled', date: '',           mileage: '',     cost: '',   priority: 'low',    dueDate: '',           dueMileage: '',     notes: 'Want tints added.\n\nEl Paso / Texas legal limits:\n• Front side windows: 25% VLT (minimum)\n• Rear side windows (2) + rear windshield: 15% VLT\n\nCompliance sticker required on driver side window.', photos: [] },
+    { id: 12, category: 'maintenance', title: 'Vehicle Inspection & Emissions Test', status: 'pending', date: '', mileage: '', cost: '', priority: 'high', dueDate: '2026-07-31', dueMileage: '', notes: 'Required before registration renewal. In El Paso (non-attainment area), Texas combines safety inspection and OBD emissions test into one. Must be done before renewing registration.', photos: [] },
+    { id: 13, category: 'maintenance', title: 'Registration Renewal',                status: 'pending', date: '', mileage: '', cost: '', priority: 'high', dueDate: '2026-07-31', dueMileage: '', notes: 'Expires July 2026. Requires passing vehicle inspection & emissions test first. Can renew online at TxT.gov or in person at the El Paso Tax Office.', photos: [] },
+  ],
+  documents: [
+    { id: 1, title: 'Discount Tire Receipt – New Tires', type: 'receipt', date: '2026-06-24', amount: 410, notes: '4× 195/60 R15 tires @ $59 each + $25 installation each. Life-of-tire replacement included. 40,000 mile warranty. Free rotations, air checks, and inspections.', files: [] },
+  ]
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+let currentTab = 'maintenance';
+let currentFilter = 'all';
+let editingId = null;
+let pendingPhotos = [];
+
+function load() {
+  const saved = localStorage.getItem('car-tracker-v2');
+  if (saved) {
+    try { state = JSON.parse(saved); } catch(e) {}
+  }
+}
+
+function save() {
+  localStorage.setItem('car-tracker-v2', JSON.stringify(state));
+}
+
+// ── Drawer ────────────────────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  const mi = state.currentMileage;
+  document.getElementById('drawerMileage').textContent = mi ? '🛣️ ' + parseInt(mi).toLocaleString() + ' miles' : '';
+  document.getElementById('drawerCarName').textContent = state.carName || '2003 Honda Civic LX';
+  document.getElementById('drawerCarSub').textContent = state.carColor || '';
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+// ── UI ────────────────────────────────────────────────────────────────
+const pageTitles = { home: 'Home', maintenance: 'Maintenance', cleaning: 'Cleaning', bodywork: 'Body Work', documents: 'Documents' };
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
+  const active = document.getElementById('dnav-' + tab);
+  if (active) active.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageTitles[tab] || '';
+  currentFilter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  const firstFilter = document.querySelector('.filter-btn');
+  if (firstFilter) firstFilter.classList.add('active');
+
+  const toolbar = document.getElementById('mainToolbar');
+  const summaryBar = document.getElementById('summaryBar');
+  const statDd = document.getElementById('statDropdown');
+
+  if (tab === 'home') {
+    toolbar.style.display = 'none';
+    summaryBar.style.display = 'none';
+    statDd.style.display = 'none';
+    renderHome();
+  } else {
+    toolbar.style.display = 'flex';
+    summaryBar.style.display = 'grid';
+    document.querySelector('.filter-group').style.display = tab === 'documents' ? 'none' : 'flex';
+    document.getElementById('addBtn').textContent = tab === 'documents' ? '+ Add Document' : '+ Add Item';
+    if (tab === 'documents') renderDocuments();
+    else renderCards();
+  }
+}
+
+function handleAddBtn() {
+  if (currentTab === 'documents') openDocModal();
+  else openAddModal();
+}
+
+// ── Home Page ─────────────────────────────────────────────────────────
+function renderHome() {
+  updateBadges();
+  const allItems = state.items || [];
+  const overdue = allItems.filter(i => isOverdue(i));
+  const dueSoon = allItems.filter(i => !isOverdue(i) && isDueSoon(i));
+  const alerts = [...overdue, ...dueSoon];
+
+  const catInfo = [
+    { key: 'maintenance', icon: '🔧', label: 'Maintenance' },
+    { key: 'cleaning',    icon: '✨', label: 'Cleaning' },
+    { key: 'bodywork',    icon: '🛠️', label: 'Body Work' },
+    { key: 'documents',   icon: '📄', label: 'Documents' },
+  ];
+
+  const cats = catInfo.map(c => {
+    if (c.key === 'documents') {
+      const cnt = (state.documents||[]).length;
+      return `<div class="home-cat-card" onclick="switchTab('documents')">
+        <div class="home-cat-icon">${c.icon}</div>
+        <div class="home-cat-label">${c.label}</div>
+        <div class="home-cat-count">${cnt}</div>
+        <div class="home-cat-sub">records</div>
+      </div>`;
+    }
+    const items = allItems.filter(i => i.category === c.key);
+    const pending = items.filter(i => i.status === 'pending' || i.status === 'in-progress').length;
+    const badge = document.getElementById('badge-' + c.key);
+    return `<div class="home-cat-card" onclick="switchTab('${c.key}')">
+      <div class="home-cat-icon">${c.icon}</div>
+      <div class="home-cat-label">${c.label}</div>
+      <div class="home-cat-count">${items.length}</div>
+      <div class="home-cat-sub">${pending > 0 ? pending + ' need attention' : 'all good'}</div>
+    </div>`;
+  }).join('');
+
+  const alertHtml = alerts.length ? alerts.map(item => {
+    const od = isOverdue(item);
+    const catLabel = { maintenance: '🔧', cleaning: '✨', bodywork: '🛠️' }[item.category] || '';
+    let meta = '';
+    if (item.dueDate) meta = (od ? '⚠️ Due ' : '📆 Due ') + item.dueDate;
+    else if (item.dueMileage && state.currentMileage) {
+      const left = parseInt(item.dueMileage) - parseInt(state.currentMileage);
+      meta = (od ? '⚠️ ' : '📆 ') + parseInt(item.dueMileage).toLocaleString() + ' mi (' + (left > 0 ? '+' : '') + left.toLocaleString() + ')';
+    }
+    return `<div class="home-alert-item ${od ? 'overdue' : 'due-soon'}" onclick="switchTab('${item.category}');openEditModal(${item.id})">
+      <div style="font-size:1.1rem">${catLabel}</div>
+      <div class="home-alert-body">
+        <div class="home-alert-title">${escHtml(item.title)}</div>
+        <div class="home-alert-meta ${od ? 'danger' : 'warn'}">${meta}</div>
+      </div>
+      <div style="color:var(--muted);font-size:.8rem">›</div>
+    </div>`;
+  }).join('') : `<div class="home-empty-alert">✅ Nothing overdue or due soon</div>`;
+
+  const mi = state.currentMileage ? parseInt(state.currentMileage).toLocaleString() + ' mi' : 'Mileage not set';
+  const color = state.carColor || '';
+
+  document.getElementById('cardsContainer').innerHTML = `
+    <div class="home-car-card">
+      <div class="home-car-icon">🚗</div>
+      <div>
+        <div class="home-car-name">${escHtml(state.carName || '2003 Honda Civic LX')}</div>
+        <div class="home-car-sub">
+          ${color ? `<span>🎨 ${escHtml(color)}</span>` : ''}
+          <span>🛣️ ${mi}</span>
+        </div>
+      </div>
+    </div>
+    <div class="home-section-title">Sections</div>
+    <div class="home-cat-grid">${cats}</div>
+    <div class="home-section-title">Attention Needed</div>
+    ${alertHtml}
+  `;
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderCards();
+}
+
+function renderSummary() {
+  const items = state.items.filter(i => i.category === currentTab);
+  const total = items.length;
+  const pending = items.filter(i => i.status === 'pending' || i.status === 'in-progress').length;
+  const done = items.filter(i => i.status === 'done').length;
+  const spent = items.filter(i => i.status === 'done').reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+  const projected = items.filter(i => i.status !== 'done').reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+  const overdue = items.filter(i => isOverdue(i)).length;
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="stat" onclick="toggleStatDropdown('total', this)"><div class="stat-label">Total Items</div><div class="stat-value blue">${total}</div></div>
+    <div class="stat" onclick="toggleStatDropdown('pending', this)"><div class="stat-label">Pending</div><div class="stat-value yellow">${pending}</div></div>
+    <div class="stat" onclick="toggleStatDropdown('done', this)"><div class="stat-label">Completed</div><div class="stat-value green">${done}</div></div>
+    <div class="stat" onclick="toggleStatDropdown('overdue', this)"><div class="stat-label">Overdue / Due Soon</div><div class="stat-value red">${overdue}</div></div>
+    <div class="stat" onclick="toggleStatDropdown('spent', this)"><div class="stat-label">Total Spent</div><div class="stat-value green">$${spent.toFixed(2)}</div></div>
+    <div class="stat" onclick="toggleStatDropdown('projected', this)"><div class="stat-label">Projected Cost</div><div class="stat-value yellow">$${projected.toFixed(2)}</div></div>
+  `;
+
+  updateBadges();
+}
+
+function updateBadges() {
+  ['maintenance','cleaning','bodywork'].forEach(cat => {
+    const cnt = state.items.filter(i => i.category === cat && i.status !== 'done' && i.status !== 'scheduled').length;
+    const b = document.getElementById('badge-' + cat);
+    if (b) b.textContent = cnt;
+  });
+  const bd = document.getElementById('badge-documents');
+  if (bd) bd.textContent = (state.documents || []).length;
+}
+
+// ── Stat Dropdown ─────────────────────────────────────────────────────
+let activeStatEl = null;
+
+function toggleStatDropdown(type, el) {
+  const dd = document.getElementById('statDropdown');
+  if (activeStatEl === el && dd.style.display !== 'none') {
+    closeStatDropdown(); return;
+  }
+  document.querySelectorAll('.stat').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  activeStatEl = el;
+
+  const items = currentTab === 'documents' ? [] : state.items.filter(i => i.category === currentTab);
+  const prioIcon = { high: '🔴', medium: '🟡', low: '🟢' };
+
+  let filtered = [];
+  let title = '';
+
+  if (type === 'total') {
+    filtered = items; title = 'All Items';
+  } else if (type === 'pending') {
+    filtered = items.filter(i => i.status === 'pending' || i.status === 'in-progress'); title = 'Pending & In Progress';
+
+  } else if (type === 'done') {
+    filtered = items.filter(i => i.status === 'done'); title = 'Completed';
+  } else if (type === 'overdue') {
+    filtered = items.filter(i => isOverdue(i) || isDueSoon(i)); title = 'Overdue / Due Soon';
+  } else if (type === 'spent') {
+    filtered = items.filter(i => i.status === 'done' && parseFloat(i.cost) > 0).sort((a,b) => parseFloat(b.cost)-parseFloat(a.cost)); title = 'Total Spent';
+  } else if (type === 'projected') {
+    filtered = items.filter(i => i.status !== 'done' && parseFloat(i.cost) > 0).sort((a,b) => parseFloat(b.cost)-parseFloat(a.cost)); title = 'Projected Cost';
+  }
+
+  const thumbs = filtered.map(item => {
+    const icon = prioIcon[item.priority] || '🟡';
+    const statusLabel = { scheduled: '📅 Scheduled', pending: '⏳ Pending', 'in-progress': '🔵 In Progress', done: '✅ Done' }[item.status] || '';
+    let meta = [];
+    if (type === 'done' && item.date) meta.push(`<span>📅 ${item.date}</span>`);
+    if (type === 'overdue') {
+      if (item.dueDate) meta.push(`<span class="${isOverdue(item) ? 'danger' : 'warn'}">📆 ${item.dueDate}</span>`);
+      if (item.dueMileage) meta.push(`<span class="${isOverdue(item) ? 'danger' : 'warn'}">🔧 @${parseInt(item.dueMileage).toLocaleString()} mi</span>`);
+    }
+    if ((type === 'spent' || type === 'projected') && item.cost) meta.push(`<span class="cost">💵 $${parseFloat(item.cost).toFixed(2)}</span>`);
+    if (type === 'total') meta.push(`<span>${statusLabel}</span>`);
+    if (item.mileage && type !== 'spent') meta.push(`<span>🛣️ ${parseInt(item.mileage).toLocaleString()} mi</span>`);
+    return `<div class="stat-thumb" onclick="closeStatDropdown();openEditModal(${item.id})">
+      <div class="stat-thumb-icon">${icon}</div>
+      <div class="stat-thumb-body">
+        <div class="stat-thumb-title">${escHtml(item.title)}</div>
+        ${meta.length ? `<div class="stat-thumb-meta">${meta.join('')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  dd.innerHTML = `<div class="stat-dropdown-header">${title} (${filtered.length})</div>${thumbs || '<div class="stat-dropdown-empty">None</div>'}`;
+
+  // position below the clicked stat card
+  const rect = el.getBoundingClientRect();
+  const barRect = document.getElementById('summaryBar').getBoundingClientRect();
+  dd.style.display = 'block';
+  dd.style.left = (rect.left - barRect.left) + 'px';
+  dd.style.top = (rect.bottom - barRect.top + 8) + 'px';
+  dd.style.minWidth = Math.max(rect.width, 280) + 'px';
+}
+
+function closeStatDropdown() {
+  document.getElementById('statDropdown').style.display = 'none';
+  document.querySelectorAll('.stat').forEach(s => s.classList.remove('active'));
+  activeStatEl = null;
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.stat') && !e.target.closest('.stat-dropdown')) closeStatDropdown();
+});
+
+function isOverdue(item) {
+  if (item.status === 'done') return false;
+  const today = new Date().toISOString().split('T')[0];
+  if (item.dueDate && item.dueDate < today) return true;
+  if (item.dueMileage && state.currentMileage && parseInt(item.dueMileage) <= parseInt(state.currentMileage)) return true;
+  return false;
+}
+
+function isDueSoon(item) {
+  if (item.status === 'done') return false;
+  const today = new Date();
+  const soon = new Date(); soon.setDate(today.getDate() + 14);
+  const soonStr = soon.toISOString().split('T')[0];
+  if (item.dueDate && item.dueDate >= today.toISOString().split('T')[0] && item.dueDate <= soonStr) return true;
+  if (item.dueMileage && state.currentMileage && parseInt(item.dueMileage) - parseInt(state.currentMileage) <= 1000 && parseInt(item.dueMileage) > parseInt(state.currentMileage)) return true;
+  return false;
+}
+
+function renderCards() {
+  renderSummary();
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let items = state.items.filter(i => i.category === currentTab);
+  if (currentFilter !== 'all') items = items.filter(i => i.status === currentFilter);
+  if (q) items = items.filter(i => i.title.toLowerCase().includes(q) || (i.notes||'').toLowerCase().includes(q));
+
+  // sort: overdue first, then by priority, then pending before done
+  const pOrd = { high: 0, medium: 1, low: 2 };
+  items.sort((a, b) => {
+    if (isOverdue(a) !== isOverdue(b)) return isOverdue(a) ? -1 : 1;
+    if (isDueSoon(a) !== isDueSoon(b)) return isDueSoon(a) ? -1 : 1;
+    const pa = pOrd[a.priority] ?? 1, pb = pOrd[b.priority] ?? 1;
+    if (pa !== pb) return pa - pb;
+    if (a.status === 'done' !== b.status === 'done') return a.status === 'done' ? 1 : -1;
+    return 0;
+  });
+
+  const cont = document.getElementById('cardsContainer');
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>No items found.<br>Click "+ Add Item" to get started.</p></div>`;
+    return;
+  }
+
+  cont.innerHTML = items.map(item => {
+    const overdue = isOverdue(item);
+    const dueSoon = isDueSoon(item);
+    const cardClass = overdue ? 'card overdue' : dueSoon ? 'card due-soon' : item.status === 'done' ? 'card done' : 'card';
+    const statusClass = { scheduled: 'status-scheduled', pending: 'status-pending', 'in-progress': 'status-in-progress', done: 'status-done' }[item.status] || 'status-pending';
+    const statusLabel = { scheduled: '📅 Scheduled', pending: '⏳ Pending', 'in-progress': '🔵 In Progress', done: '✅ Done' }[item.status];
+    const priorityDot = item.priority === 'high' ? '🔴' : item.priority === 'medium' ? '🟡' : '🟢';
+
+    let meta = [];
+    if (item.date) meta.push(`<span class="meta-item">📅 ${item.date}</span>`);
+    if (item.mileage) meta.push(`<span class="meta-item">🛣️ ${parseInt(item.mileage).toLocaleString()} mi</span>`);
+    if (item.cost) meta.push(`<span class="meta-item cost">💵 $${parseFloat(item.cost).toFixed(2)}</span>`);
+    if (item.dueDate) {
+      const cls = overdue ? 'meta-item overdue-text' : dueSoon ? 'meta-item due-soon-text' : 'meta-item';
+      meta.push(`<span class="${cls}">📆 Due ${item.dueDate}</span>`);
+    }
+    if (item.dueMileage) {
+      const miLeft = state.currentMileage ? parseInt(item.dueMileage) - parseInt(state.currentMileage) : null;
+      const cls = (miLeft !== null && miLeft <= 0) ? 'meta-item overdue-text' : (miLeft !== null && miLeft <= 1000) ? 'meta-item due-soon-text' : 'meta-item';
+      const label = miLeft !== null ? ` (${miLeft > 0 ? '+' : ''}${miLeft.toLocaleString()} mi)` : '';
+      meta.push(`<span class="${cls}">🔧 Due @ ${parseInt(item.dueMileage).toLocaleString()} mi${label}</span>`);
+    }
+
+    const photos = (item.photos||[]).map((p,idx) => `<img src="${p}" onclick="openLightbox('${item.id}', ${idx})" title="View photo">`).join('');
+
+    return `<div class="${cardClass}" id="card-${item.id}" onclick="openEditModal(${item.id})" style="cursor:pointer">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${priorityDot} ${escHtml(item.title)}</div>
+        </div>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <span class="status-badge ${statusClass}" onclick="openStatusPicker(event,${item.id})">${statusLabel}</span>
+          <button class="icon-btn danger" onclick="deleteItem(${item.id})" title="Delete">🗑️</button>
+        </div>
+      </div>
+      ${meta.length ? `<div class="card-meta">${meta.join('')}</div>` : ''}
+      ${item.notes ? `<div class="card-notes">${escHtml(item.notes)}</div>` : ''}
+      ${photos ? `<div class="card-photo" onclick="event.stopPropagation()">${photos}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openStatusPicker(e, id) {
+  e.stopPropagation();
+  const existing = document.getElementById('statusPicker');
+  if (existing && existing.dataset.itemId == id) { closeStatusPicker(); return; }
+  closeStatusPicker();
+  const item = state.items.find(i => i.id === id);
+  if (!item) return;
+  const options = [
+    { value: 'scheduled', label: '📅 Scheduled' },
+    { value: 'pending',   label: '⏳ Pending' },
+    { value: 'in-progress', label: '🔵 In Progress' },
+    { value: 'done',      label: '✅ Done' },
+  ];
+  const picker = document.createElement('div');
+  picker.className = 'status-picker';
+  picker.id = 'statusPicker';
+  picker.dataset.itemId = id;
+  picker.innerHTML = options.map(o =>
+    `<div class="status-picker-option${item.status === o.value ? ' active' : ''}" onclick="setStatus(${id},'${o.value}')">${o.label}</div>`
+  ).join('');
+  document.body.appendChild(picker);
+  const rect = e.target.getBoundingClientRect();
+  picker.style.top = (rect.bottom + 6) + 'px';
+  picker.style.left = rect.left + 'px';
+  setTimeout(() => document.addEventListener('click', closeStatusPicker, { once: true }), 0);
+}
+
+function setStatus(id, status) {
+  const item = state.items.find(i => i.id === id);
+  if (item) { item.status = status; save(); renderCards(); }
+  closeStatusPicker();
+}
+
+function closeStatusPicker() {
+  const p = document.getElementById('statusPicker');
+  if (p) p.remove();
+}
+
+function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  state.items = state.items.filter(i => i.id !== id);
+  save();
+  renderCards();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  pendingPhotos = [];
+  document.getElementById('modalTitle').textContent = 'Add Item';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-status').value = 'pending';
+  document.getElementById('f-category').value = currentTab;
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-mileage').value = '';
+  document.getElementById('f-cost').value = '';
+  document.getElementById('f-priority').value = 'medium';
+  document.getElementById('f-due-date').value = '';
+  document.getElementById('f-due-mileage').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('photoPreview').innerHTML = '';
+  document.getElementById('addModal').style.display = 'flex';
+}
+
+function openEditModal(id) {
+  const item = state.items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  pendingPhotos = [...(item.photos || [])];
+  document.getElementById('modalTitle').textContent = 'Edit Item';
+  document.getElementById('f-title').value = item.title;
+  document.getElementById('f-status').value = item.status;
+  document.getElementById('f-category').value = item.category;
+  document.getElementById('f-date').value = item.date || '';
+  document.getElementById('f-mileage').value = item.mileage || '';
+  document.getElementById('f-cost').value = item.cost || '';
+  document.getElementById('f-priority').value = item.priority || 'medium';
+  document.getElementById('f-due-date').value = item.dueDate || '';
+  document.getElementById('f-due-mileage').value = item.dueMileage || '';
+  document.getElementById('f-notes').value = item.notes || '';
+  renderPhotoPreview();
+  document.getElementById('addModal').style.display = 'flex';
+}
+
+function saveItem() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  const data = {
+    title,
+    status: document.getElementById('f-status').value,
+    category: document.getElementById('f-category').value,
+    date: document.getElementById('f-date').value,
+    mileage: document.getElementById('f-mileage').value,
+    cost: document.getElementById('f-cost').value,
+    priority: document.getElementById('f-priority').value,
+    dueDate: document.getElementById('f-due-date').value,
+    dueMileage: document.getElementById('f-due-mileage').value,
+    notes: document.getElementById('f-notes').value.trim(),
+    photos: [...pendingPhotos]
+  };
+  if (editingId) {
+    const idx = state.items.findIndex(i => i.id === editingId);
+    if (idx >= 0) state.items[idx] = { ...state.items[idx], ...data };
+  } else {
+    state.items.push({ id: state.nextId++, ...data });
+  }
+  // if category changed tab, switch to it
+  if (data.category !== currentTab) { currentTab = data.category; document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-' + currentTab).classList.add('active'); }
+  save();
+  closeModal('addModal');
+  renderCards();
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function closeModalOnOverlay(e, id) { if (e.target.id === id) closeModal(id); }
+
+// ── Photos ────────────────────────────────────────────────────────────
+function handlePhotos(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => { pendingPhotos.push(ev.target.result); renderPhotoPreview(); };
+    reader.readAsDataURL(f);
+  });
+  e.target.value = '';
+}
+
+function renderPhotoPreview() {
+  document.getElementById('photoPreview').innerHTML = pendingPhotos.map((p, i) =>
+    `<div class="photo-preview-item"><img src="${p}"><button class="photo-remove" onclick="removePhoto(${i})">✕</button></div>`
+  ).join('');
+}
+
+function removePhoto(i) { pendingPhotos.splice(i, 1); renderPhotoPreview(); }
+
+function openLightbox(itemId, idx) {
+  const item = state.items.find(i => i.id == itemId);
+  if (!item || !item.photos[idx]) return;
+  document.getElementById('lightboxImg').src = item.photos[idx];
+  document.getElementById('lightbox').style.display = 'flex';
+}
+function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+
+// ── Settings ──────────────────────────────────────────────────────────
+function openMileageModal() {
+  document.getElementById('s-mileage').value = state.currentMileage || '';
+  document.getElementById('s-carName').value = state.carName || '';
+  document.getElementById('s-carColor').value = state.carColor || '';
+  const last = parseInt(localStorage.getItem('car-tracker-last-backup') || '0');
+  const bStatus = document.getElementById('backupStatus');
+  if (bStatus) bStatus.textContent = last ? `Last backup: ${new Date(last).toLocaleDateString()}` : 'No backup yet.';
+  document.getElementById('mileageModal').style.display = 'flex';
+}
+
+function saveSettings() {
+  state.currentMileage = document.getElementById('s-mileage').value;
+  state.carName = document.getElementById('s-carName').value.trim() || '2003 Honda Civic LX';
+  state.carColor = document.getElementById('s-carColor').value.trim();
+  save();
+  document.getElementById('currentMileageDisplay').textContent = state.currentMileage ? parseInt(state.currentMileage).toLocaleString() : '—';
+  closeModal('mileageModal');
+  if (currentTab === 'home') renderHome();
+  else renderCards();
+}
+
+// ── Documents ─────────────────────────────────────────────────────────
+let editingDocId = null;
+let pendingDocFiles = [];
+
+const docTypeIcon = { receipt: '🧾', warranty: '📋', inspection: '🔍', insurance: '🛡️', registration: '📝', other: '📄' };
+const docTypeLabel = { receipt: 'Receipt', warranty: 'Warranty', inspection: 'Inspection', insurance: 'Insurance', registration: 'Registration', other: 'Document' };
+
+function renderDocuments() {
+  renderSummary();
+  const docs = state.documents || [];
+  const cont = document.getElementById('cardsContainer');
+  // update summary bar for docs
+  const totalSpent = docs.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="stat"><div class="stat-label">Documents</div><div class="stat-value blue">${docs.length}</div></div>
+    <div class="stat"><div class="stat-label">Receipts</div><div class="stat-value green">${docs.filter(d=>d.type==='receipt').length}</div></div>
+    <div class="stat"><div class="stat-label">Warranties</div><div class="stat-value yellow">${docs.filter(d=>d.type==='warranty').length}</div></div>
+    <div class="stat"><div class="stat-label">Total Documented</div><div class="stat-value green">$${totalSpent.toFixed(2)}</div></div>
+  `;
+  if (!docs.length) {
+    cont.innerHTML = `<div class="empty"><div class="empty-icon">📄</div><p>No documents yet.<br>Click "+ Add Document" to save receipts, warranties, and records.</p></div>`;
+    return;
+  }
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const filtered = q ? docs.filter(d => d.title.toLowerCase().includes(q) || (d.notes||'').toLowerCase().includes(q)) : docs;
+  const sorted = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  cont.innerHTML = sorted.map(doc => {
+    const icon = docTypeIcon[doc.type] || '📄';
+    const label = docTypeLabel[doc.type] || 'Document';
+    const files = (doc.files||[]).map((f,i) =>
+      f.startsWith('data:image')
+        ? `<img src="${f}" onclick="openDocLightbox(${doc.id},${i})" style="width:80px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid var(--border)">`
+        : `<span style="font-size:.8rem;color:var(--accent);cursor:pointer" onclick="downloadDoc(${doc.id},${i})">📎 Attachment ${i+1}</span>`
+    ).join('');
+    return `<div class="card" onclick="openDocModal(${doc.id})" style="cursor:pointer">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${icon} ${escHtml(doc.title)}</div>
+        </div>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <span class="status-badge status-done">${label}</span>
+          <button class="icon-btn danger" onclick="deleteDoc(${doc.id})" title="Delete">🗑️</button>
+        </div>
+      </div>
+      <div class="card-meta">
+        ${doc.date ? `<span class="meta-item">📅 ${doc.date}</span>` : ''}
+        ${doc.amount ? `<span class="meta-item cost">💵 $${parseFloat(doc.amount).toFixed(2)}</span>` : ''}
+      </div>
+      ${doc.notes ? `<div class="card-notes">${escHtml(doc.notes)}</div>` : ''}
+      ${files ? `<div class="card-photo" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">${files}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openDocModal(id) {
+  editingDocId = id || null;
+  pendingDocFiles = [];
+  if (id) {
+    const doc = (state.documents||[]).find(d => d.id === id);
+    if (!doc) return;
+    pendingDocFiles = [...(doc.files||[])];
+    document.getElementById('docModalTitle').textContent = 'Edit Document';
+    document.getElementById('d-title').value = doc.title;
+    document.getElementById('d-type').value = doc.type || 'receipt';
+    document.getElementById('d-date').value = doc.date || '';
+    document.getElementById('d-amount').value = doc.amount || '';
+    document.getElementById('d-notes').value = doc.notes || '';
+  } else {
+    document.getElementById('docModalTitle').textContent = 'Add Document';
+    document.getElementById('d-title').value = '';
+    document.getElementById('d-type').value = 'receipt';
+    document.getElementById('d-date').value = '';
+    document.getElementById('d-amount').value = '';
+    document.getElementById('d-notes').value = '';
+  }
+  renderDocFilePreview();
+  document.getElementById('docModal').style.display = 'flex';
+}
+
+function saveDoc() {
+  const title = document.getElementById('d-title').value.trim();
+  if (!title) { document.getElementById('d-title').focus(); return; }
+  if (!state.documents) state.documents = [];
+  if (!state.nextDocId) state.nextDocId = 1;
+  const data = {
+    title,
+    type: document.getElementById('d-type').value,
+    date: document.getElementById('d-date').value,
+    amount: document.getElementById('d-amount').value,
+    notes: document.getElementById('d-notes').value.trim(),
+    files: [...pendingDocFiles]
+  };
+  if (editingDocId) {
+    const idx = state.documents.findIndex(d => d.id === editingDocId);
+    if (idx >= 0) state.documents[idx] = { ...state.documents[idx], ...data };
+  } else {
+    state.documents.push({ id: state.nextDocId++, ...data });
+  }
+  save();
+  closeModal('docModal');
+  renderDocuments();
+  document.getElementById('badge-documents').textContent = state.documents.length;
+}
+
+function deleteDoc(id) {
+  if (!confirm('Delete this document?')) return;
+  state.documents = (state.documents||[]).filter(d => d.id !== id);
+  save();
+  renderDocuments();
+  document.getElementById('badge-documents').textContent = state.documents.length;
+}
+
+function handleDocFiles(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => { pendingDocFiles.push(ev.target.result); renderDocFilePreview(); };
+    reader.readAsDataURL(f);
+  });
+  e.target.value = '';
+}
+
+function renderDocFilePreview() {
+  document.getElementById('docFilePreview').innerHTML = pendingDocFiles.map((f, i) =>
+    `<div class="photo-preview-item">${f.startsWith('data:image') ? `<img src="${f}" style="width:70px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--border)">` : `<div style="width:70px;height:56px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:6px;font-size:1.4rem">📎</div>`}<button class="photo-remove" onclick="pendingDocFiles.splice(${i},1);renderDocFilePreview()">✕</button></div>`
+  ).join('');
+}
+
+function openDocLightbox(docId, idx) {
+  const doc = (state.documents||[]).find(d => d.id == docId);
+  if (!doc || !doc.files[idx]) return;
+  document.getElementById('lightboxImg').src = doc.files[idx];
+  document.getElementById('lightbox').style.display = 'flex';
+}
+
+function downloadDoc(docId, idx) {
+  const doc = (state.documents||[]).find(d => d.id == docId);
+  if (!doc || !doc.files[idx]) return;
+  const a = document.createElement('a');
+  a.href = doc.files[idx];
+  a.download = doc.title + '_attachment_' + (idx+1);
+  a.click();
+}
+
+// ── Backup / Restore ──────────────────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = `car-tracker-backup-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  // record last backup time
+  localStorage.setItem('car-tracker-last-backup', Date.now());
+  const el = document.getElementById('backupStatus');
+  if (el) el.textContent = '✅ Backup exported — save it to Files app.';
+  checkBackupBanner();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (!imported.items) throw new Error('Invalid backup file.');
+      if (!confirm(`Import backup? This will replace all current data.\n\nItems: ${imported.items.length}, Documents: ${(imported.documents||[]).length}`)) return;
+      state = imported;
+      save();
+      const el = document.getElementById('backupStatus');
+      if (el) el.textContent = '✅ Data restored successfully.';
+      closeModal('mileageModal');
+      const colorSuffix = state.carColor ? ' · ' + state.carColor : '';
+      document.getElementById('carLabel').textContent = (state.carName || '2003 Honda Civic LX') + colorSuffix;
+      document.getElementById('currentMileageDisplay').textContent = state.currentMileage ? parseInt(state.currentMileage).toLocaleString() : '—';
+      renderCards();
+    } catch(err) {
+      alert('Could not read backup file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function checkBackupBanner() {
+  const last = parseInt(localStorage.getItem('car-tracker-last-backup') || '0');
+  const days = (Date.now() - last) / (1000 * 60 * 60 * 24);
+  const banner = document.getElementById('backupBanner');
+  if (banner) banner.style.display = (!last || days > 5) ? 'flex' : 'none';
+  // show last backup date in settings if open
+  const el = document.getElementById('backupStatus');
+  if (el && last) el.textContent = `Last backup: ${new Date(last).toLocaleDateString()}`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+load();
+document.getElementById('currentMileageDisplay').textContent = state.currentMileage ? parseInt(state.currentMileage).toLocaleString() : '—';
+updateBadges();
+checkBackupBanner();
+switchTab('home');
+</script>
+</body>
+</html>
